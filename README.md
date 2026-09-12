@@ -26,7 +26,7 @@ The build command and demonstration were run successfully during the documentati
 ## Architecture
 
 ```mermaid
-flowchart LR
+flowchart TD
     X["Input features"] --> Cell["LSTM cell"]
     H["Previous hidden state"] --> Cell
     C["Previous cell state"] --> Cell
