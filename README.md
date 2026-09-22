@@ -10,18 +10,42 @@ This project makes the mechanics of recurrent networks inspectable: gate activat
 
 ## Build and run
 
-Requires a C++11-compatible compiler. The source uses tuples without explicitly including `<tuple>`; the command below supplies that header without modifying the source.
+Requires a C++11-compatible compiler. No other libraries or datasets are needed.
 
 ```bash
-git clone https://github.com/anudeepadi/lstmcpp.git
-cd lstmcpp
-c++ -std=c++11 -O2 -include tuple lstm.cpp -o lstm-demo
+git clone https://github.com/anudeepadi/lstm-from-scratch-cpp.git
+cd lstm-from-scratch-cpp
+c++ -std=c++11 -O2 lstm.cpp -o lstm-demo
 ./lstm-demo
 ```
 
 The example trains for 50 epochs and prints loss checkpoints followed by input, target, and prediction values. Its weights are randomly initialized, so exact results vary.
 
-The build command and demonstration were run successfully during the documentation refresh. Completing the example is an execution check, not evidence of prediction accuracy or gradient correctness.
+The command was compiled and run with Apple Clang 21 on 22 September 2026. Completing the example is an execution check, not evidence of prediction accuracy or gradient correctness.
+
+## An observed run
+
+![Six measured training-loss checkpoints from one run](docs/learning-curve.png)
+
+The figure comes from the [complete captured output](docs/training-run.txt), including all ten printed predictions. It shows the mean online training loss (each sample is scored before its update), not a held-out evaluation or the final model's loss on a fixed set.
+
+```text
+Epoch 1/50, Loss: 0.405091
+Epoch 50/50, Loss: 0.292434
+Input: 0, Actual: 0, Predicted: 0.832307
+```
+
+The decreasing loss does **not** mean the example fits the sine wave well: its prediction at zero is visibly inaccurate. This is useful code to read and investigate, with algorithm validation still outstanding.
+
+To capture your own run and regenerate the plot:
+
+```bash
+./lstm-demo > docs/training-run.txt
+python3 -m pip install matplotlib==3.10.8
+python3 docs/plot_learning_curve.py
+```
+
+The plotting step is optional; building and running the C++ example needs no Python. Random initialization means your values and curve will differ.
 
 ## Architecture
 
@@ -39,7 +63,7 @@ flowchart TD
     Loss --> Updates["Gradient calculations and weight updates"]
 ```
 
-The cell defines recurrent-state operations. The example's prediction method initializes hidden and cell state to zero on each call; it does not expose a stateful streaming inference API.
+The cell defines recurrent-state operations. Both training and prediction reset hidden and cell state for every sample, so the demonstration fits individual `(x, sin(x))` pairs rather than learning across a sequence. It does not expose a stateful streaming inference API.
 
 ## Reading the code
 
@@ -74,9 +98,9 @@ This snippet illustrates the existing interface; the two samples are not a meani
 - No automated gradient checks, hold-out accuracy tests, or performance benchmarks are included.
 - The demo prints predictions on inputs drawn from its training range; this is not a generalization evaluation.
 - Serialization, batching, GPU acceleration, and a stateful inference interface are not implemented.
-- Gradient and sequence-handling behavior should be validated before extending the training algorithm.
+- Gradients are propagated using weights that have already been updated; no numerical gradient check currently establishes correctness. The cell's returned previous-state gradients are not used for backpropagation through a sequence.
 
-Useful contributions include the explicit tuple include, deterministic tests, numerical gradient checks, and a clearly separated train/test example. Keep the implementation readable enough to study.
+Useful contributions include seeded runs, numerical gradient checks, and a clearly separated train/test example. Keep the implementation readable enough to study.
 
 ## License
 
