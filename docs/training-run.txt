@@ -1,0 +1,18 @@
+Epoch 1/50, Loss: 0.405091
+Epoch 10/50, Loss: 0.375055
+Epoch 20/50, Loss: 0.345921
+Epoch 30/50, Loss: 0.319241
+Epoch 40/50, Loss: 0.301752
+Epoch 50/50, Loss: 0.292434
+Training complete. Final loss: 0.292434
+Testing predictions:
+Input: 0, Actual: 0, Predicted: 0.832307
+Input: 0.1, Actual: 0.0998334, Predicted: 0.793933
+Input: 0.2, Actual: 0.198669, Predicted: 0.755804
+Input: 0.3, Actual: 0.29552, Predicted: 0.718015
+Input: 0.4, Actual: 0.389418, Predicted: 0.680656
+Input: 0.5, Actual: 0.479426, Predicted: 0.64382
+Input: 0.6, Actual: 0.564642, Predicted: 0.607596
+Input: 0.7, Actual: 0.644218, Predicted: 0.572072
+Input: 0.8, Actual: 0.717356, Predicted: 0.537331
+Input: 0.9, Actual: 0.783327, Predicted: 0.503452

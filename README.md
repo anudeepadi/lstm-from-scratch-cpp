@@ -1,107 +1,107 @@
 # LSTM from Scratch in C++
 
-## Overview
-This repository contains an implementation of a Long Short-Term Memory (LSTM) neural network written from scratch in C++, as described in my blog post ["I Built an LSTM from Scratch in C++. Here's What I Learned."](https://medium.com/@anudeepadi/i-built-an-lstm-from-scratch-in-c-heres-what-i-learned-defed7b90949)
+A single-file educational implementation of an LSTM cell and a small prediction network, using the C++ standard library.
 
-This project was created to understand the inner workings of LSTM networks at a fundamental level, without relying on machine learning frameworks or libraries.
+This project makes the mechanics of recurrent networks inspectable: gate activations, cell and hidden state, a linear output layer, gradient calculations, and weight updates live in one source file. The included example trains on generated sine-wave samples.
 
-## Features
-- Complete LSTM cell implementation with forget, input, and output gates
-- Backpropagation through time (BPTT) with gradient clipping
-- Simple network structure with configurable hyperparameters
-- Example usage with sine wave prediction
+**Scope:** a learning implementation, not a CUDA library or a validated forecasting package. It has no Python bindings or external ML framework dependency.
 
-## Requirements
-- C++11 or higher
-- Standard library only (no external dependencies)
+[Build and run](#build-and-run) · [Architecture](#architecture) · [Reading the code](#reading-the-code)
 
-## Implementation Details
+## Build and run
 
-### Data Structure
+Requires a C++11-compatible compiler. No other libraries or datasets are needed.
+
+```bash
+git clone https://github.com/anudeepadi/lstm-from-scratch-cpp.git
+cd lstm-from-scratch-cpp
+c++ -std=c++11 -O2 lstm.cpp -o lstm-demo
+./lstm-demo
+```
+
+The example trains for 50 epochs and prints loss checkpoints followed by input, target, and prediction values. Its weights are randomly initialized, so exact results vary.
+
+The command was compiled and run with Apple Clang 21 on 22 September 2026. Completing the example is an execution check, not evidence of prediction accuracy or gradient correctness.
+
+## An observed run
+
+![Six measured training-loss checkpoints from one run](docs/learning-curve.png)
+
+The figure comes from the [complete captured output](docs/training-run.txt), including all ten printed predictions. It shows the mean online training loss (each sample is scored before its update), not a held-out evaluation or the final model's loss on a fixed set.
+
+```text
+Epoch 1/50, Loss: 0.405091
+Epoch 50/50, Loss: 0.292434
+Input: 0, Actual: 0, Predicted: 0.832307
+```
+
+The decreasing loss does **not** mean the example fits the sine wave well: its prediction at zero is visibly inaccurate. This is useful code to read and investigate, with algorithm validation still outstanding.
+
+To capture your own run and regenerate the plot:
+
+```bash
+./lstm-demo > docs/training-run.txt
+python3 -m pip install matplotlib==3.10.8
+python3 docs/plot_learning_curve.py
+```
+
+The plotting step is optional; building and running the C++ example needs no Python. Random initialization means your values and curve will differ.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    X["Input features"] --> Cell["LSTM cell"]
+    H["Previous hidden state"] --> Cell
+    C["Previous cell state"] --> Cell
+    Cell --> Gates["Forget, input, candidate and output gates"]
+    Gates --> State["Updated cell and hidden state"]
+    State --> Linear["Linear output layer"]
+    Linear --> Prediction["Scalar prediction"]
+    Prediction --> Loss["Training loss"]
+    Target["Target value"] --> Loss
+    Loss --> Updates["Gradient calculations and weight updates"]
+```
+
+The cell defines recurrent-state operations. Both training and prediction reset hidden and cell state for every sample, so the demonstration fits individual `(x, sin(x))` pairs rather than learning across a sequence. It does not expose a stateful streaming inference API.
+
+## Reading the code
+
+All implementation is in [lstm.cpp](lstm.cpp).
+
+| Component | Responsibility |
+| --- | --- |
+| `DataSample` | Input feature vector and scalar target |
+| Math helpers | Activations, vector/matrix operations, and clipping |
+| `LSTMCell` | Gate computation, cell-state update, and backward calculations |
+| `LSTMNetwork` | Output projection, training loop, and scalar prediction |
+| `main()` | Synthetic data, hyperparameters, training, and printed examples |
+
+The demonstration uses an input size of 1, hidden size of 32, output size of 1, learning rate of 0.01, and 100 generated training samples. These values are editable in `main()`.
+
+## Example API
+
 ```cpp
-struct DataSample {
-    vector<double> features;
-    double target;
+LSTMNetwork network(1, 32, 1, 0.01, 50);
+std::vector<DataSample> samples = {
+    {{0.0}, 0.0},
+    {{0.1}, std::sin(0.1)}
 };
+network.train(samples);
+double prediction = network.predict({0.2});
 ```
 
-### LSTM Cell
-The LSTM cell implements the core functionality:
-- Forward pass with all gates (forget, input, output)
-- Backward pass with proper gradient computation
-- Weight updates using gradient descent
+This snippet illustrates the existing interface; the two samples are not a meaningful training dataset.
 
-### Network Architecture
-- Configurable input size, hidden size, and output size
-- Hyperparameters tunable via constructor (learning rate, epochs)
-- Simple prediction interface
+## Limits and next steps
 
-## Usage
+- No automated gradient checks, hold-out accuracy tests, or performance benchmarks are included.
+- The demo prints predictions on inputs drawn from its training range; this is not a generalization evaluation.
+- Serialization, batching, GPU acceleration, and a stateful inference interface are not implemented.
+- Gradients are propagated using weights that have already been updated; no numerical gradient check currently establishes correctness. The cell's returned previous-state gradients are not used for backpropagation through a sequence.
 
-```cpp
-// Create and configure the LSTM network
-int input_size = 1;
-int hidden_size = 32;
-int output_size = 1;
-double learning_rate = 0.01;
-int epochs = 50;
-
-LSTMNetwork lstm(input_size, hidden_size, output_size, learning_rate, epochs);
-
-// Create training data
-vector<DataSample> training_data;
-/* Populate with your data */
-
-// Train the network
-double final_loss = lstm.train(training_data);
-
-// Make predictions
-double prediction = lstm.predict(input_features);
-```
-
-## Compilation Notes
-
-When compiling the code, make sure to include the `<tuple>` header:
-
-```cpp
-#include <vector>
-#include <cmath>
-#include <random>
-#include <iostream>
-#include <algorithm>
-#include <tuple>  // Required for std::tie and tuple returns
-```
-
-## Key Lessons Learned
-
-1. **Proper Weight Initialization**: Small random values are crucial to prevent vanishing/exploding gradients.
-
-2. **Gradient Clipping**: Essential for stable training, implemented as:
-   ```cpp
-   double clip(double value, double min_value, double max_value) {
-       return max(min_value, min(value, max_value));
-   }
-   ```
-
-3. **Hyperparameter Tuning**: After experimentation, these values worked well:
-   - Learning rate: 0.01
-   - Hidden size: 32
-   - Number of epochs: 50
-
-4. **Memory Management**: Careful tracking of intermediate values for backpropagation.
-
-## Future Improvements
-
-- Bidirectional LSTM support
-- Different optimization algorithms
-- Dropout layers
-- Batch normalization
-- Mini-batch training
+Useful contributions include seeded runs, numerical gradient checks, and a clearly separated train/test example. Keep the implementation readable enough to study.
 
 ## License
-MIT
 
-## Contact
-- Website: [anudeepadi.me](https://anudeepadi.me)
-- LinkedIn: [adirajuadi](https://linkedin.com/in/adirajuadi)
-- GitHub: [anudeepadi](https://github.com/anudeepadi)
+[MIT](LICENSE).
